@@ -112,7 +112,7 @@ class RBM(abc.ABC):
             epoch_err_num = 0
 
             for batch in dataset.batch(batch_size):
-                err_t = self.step(tf.cast(batch, dtype=tf.float32))
+                err_t = self.step(batch)
                 err_f: float = err_t.numpy().item()
                 self.logger.debug('Batch error: %f', err_f)
                 errors.append(err_f)

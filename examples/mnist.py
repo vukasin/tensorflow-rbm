@@ -14,7 +14,7 @@ def main():
     x_train = x_train / 255
     x_test = x_test / 255
 
-    dataset = tf.data.Dataset.from_tensor_slices(x_train.reshape(-1, 28 * 28))
+    dataset = tf.data.Dataset.from_tensor_slices(x_train.reshape(-1, 28 * 28).astype(np.float32))
     dataset = dataset.shuffle(1024, reshuffle_each_iteration=True)
 
     rbm = BBRBM(n_visible=28 * 28, n_hidden=64)
