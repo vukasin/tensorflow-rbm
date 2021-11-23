@@ -22,7 +22,7 @@ class BBRBM(RBM):
         hidden_recon_p = tf.nn.sigmoid(tf.matmul(x, self.w) + self.hidden_bias)
         hidden_p = hidden_recon_p
 
-        positive_grad = tf.matmul(tf.transpose(visible_recon_p), hidden_recon_p)
+        positive_grad = tf.matmul(tf.transpose(x), hidden_recon_p)
         visible_recon_p = x
         for _ in range(k):
             visible_recon_p = tf.nn.sigmoid(tf.matmul(sample_bernoulli(hidden_recon_p), tf.transpose(self.w)) + self.visible_bias)
