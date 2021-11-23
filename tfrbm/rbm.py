@@ -9,12 +9,12 @@ from .util import xavier_init
 
 class RBM(abc.ABC):
     def __init__(
-            self,
-            n_visible: int,
-            n_hidden: int,
-            learning_rate: float = 0.01,
-            momentum: float = 0.95,
-            xavier_const: float = 1.0
+        self,
+        n_visible: int,
+        n_hidden: int,
+        learning_rate: float = 0.01,
+        momentum: float = 0.95,
+        xavier_const: float = 1.0,
     ):
         """
         Initializes RBM.
@@ -26,39 +26,50 @@ class RBM(abc.ABC):
         :param xavier_const: constant used to initialize weights (default: 1.0)
         """
         if not 0.0 <= momentum <= 1.0:
-            raise ValueError('momentum should be in range [0, 1]')
+            raise ValueError("momentum should be in range [0, 1]")
 
         self.n_visible = n_visible
         self.n_hidden = n_hidden
         self.learning_rate = learning_rate
         self.momentum = momentum
 
-        self.w = tf.Variable(xavier_init(self.n_visible, self.n_hidden, const=xavier_const), dtype=tf.float32)
+        self.w = tf.Variable(
+            xavier_init(self.n_visible, self.n_hidden, const=xavier_const),
+            dtype=tf.float32,
+        )
         self.visible_bias = tf.Variable(tf.zeros([self.n_visible]), dtype=tf.float32)
         self.hidden_bias = tf.Variable(tf.zeros([self.n_hidden]), dtype=tf.float32)
 
-        self.delta_w = tf.Variable(tf.zeros([self.n_visible, self.n_hidden]), dtype=tf.float32)
-        self.delta_visible_bias = tf.Variable(tf.zeros([self.n_visible]), dtype=tf.float32)
-        self.delta_hidden_bias = tf.Variable(tf.zeros([self.n_hidden]), dtype=tf.float32)
+        self.delta_w = tf.Variable(
+            tf.zeros([self.n_visible, self.n_hidden]), dtype=tf.float32
+        )
+        self.delta_visible_bias = tf.Variable(
+            tf.zeros([self.n_visible]), dtype=tf.float32
+        )
+        self.delta_hidden_bias = tf.Variable(
+            tf.zeros([self.n_hidden]), dtype=tf.float32
+        )
 
         self.logger = logging.getLogger(self.__class__.__name__)
 
     @abc.abstractmethod
-    def step(self, x: tf.Tensor) -> tf.Tensor:
+    def step(self, x: tf.Tensor, k: int ) -> tf.Tensor:
         """
         Performs one training step.
 
         :param x: tensor of shape (batch_size, n_visible)
         :return: tensor of size (1,) containing reconstruction error
         """
-        raise NotImplementedError('step is not implemented')
+        raise NotImplementedError("step is not implemented")
 
     def _apply_momentum(self, old: tf.Tensor, new: tf.Tensor) -> tf.Tensor:
         n = tf.cast(new.shape[0], dtype=tf.float32)
         m = self.momentum
         lr = self.learning_rate
 
-        return tf.add(tf.math.scalar_mul(m, old), tf.math.scalar_mul((1 - m) * lr / n, new))
+        return tf.add(
+            tf.math.scalar_mul(m, old), tf.math.scalar_mul((1 - m) * lr / n, new)
+        )
 
     def compute_hidden(self, x: tf.Tensor) -> tf.Tensor:
         """
@@ -76,7 +87,9 @@ class RBM(abc.ABC):
         :param hidden: tensor of shape (batch_size, n_hidden)
         :return: tensor of shape (batch_size, n_visible)
         """
-        return tf.nn.sigmoid(tf.matmul(hidden, tf.transpose(self.w)) + self.visible_bias)
+        return tf.nn.sigmoid(
+            tf.matmul(hidden, tf.transpose(self.w)) + self.visible_bias
+        )
 
     def reconstruct(self, x: tf.Tensor) -> tf.Tensor:
         """
@@ -88,10 +101,7 @@ class RBM(abc.ABC):
         return self.compute_visible(self.compute_hidden(x))
 
     def fit(
-            self,
-            dataset: tf.data.Dataset,
-            epoches: int = 10,
-            batch_size: int = 10
+        self, dataset: tf.data.Dataset, epoches: int = 10, batch_size: int = 10, k:int = 1
     ) -> List[float]:
         """
         Trains model.
@@ -101,25 +111,26 @@ class RBM(abc.ABC):
         :param batch_size: batch size (default: 10)
         :return: list of batch errors
         """
-        assert epoches > 0, "Number of epoches must be positive"
 
+        assert epoches > 0, "Number of epoches must be positive"
+        
         errors = []
 
         for epoch in range(epoches):
-            self.logger.info('Starting epoch %d', epoch)
+            self.logger.info("Starting epoch %d", epoch)
 
             epoch_err_sum = 0.0
             epoch_err_num = 0
 
             for batch in dataset.batch(batch_size):
-                err_t = self.step(batch)
+                err_t = self.step(batch, k)
                 err_f: float = err_t.numpy().item()
-                self.logger.debug('Batch error: %f', err_f)
+                self.logger.debug("Batch error: %f", err_f)
                 errors.append(err_f)
                 epoch_err_sum += err_f
                 epoch_err_num += 1
 
-            self.logger.info('Epoch error: %f', epoch_err_sum / epoch_err_num)
+            self.logger.info("Epoch error: %f", epoch_err_sum / epoch_err_num)
 
         return errors
 
@@ -130,12 +141,12 @@ class RBM(abc.ABC):
         :return: dictionary of TensorFlow variables
         """
         return {
-            'w': self.w,
-            'visible_bias': self.visible_bias,
-            'hidden_bias': self.hidden_bias,
-            'delta_w': self.delta_w,
-            'delta_visible_bias': self.delta_visible_bias,
-            'delta_hidden_bias': self.delta_hidden_bias
+            "w": self.w,
+            "visible_bias": self.visible_bias,
+            "hidden_bias": self.hidden_bias,
+            "delta_w": self.delta_w,
+            "delta_visible_bias": self.delta_visible_bias,
+            "delta_hidden_bias": self.delta_hidden_bias,
         }
 
     def set_state(self, state: Dict[str, tf.Variable]) -> None:
@@ -145,9 +156,9 @@ class RBM(abc.ABC):
         :param state: dictionary of TensorFlow variables
         :return: None
         """
-        self.w = state['w']
-        self.visible_bias = state['visible_bias']
-        self.hidden_bias = state['hidden_bias']
-        self.delta_w = state['delta_w']
-        self.delta_visible_bias = state['delta_visible_bias']
-        self.delta_hidden_bias = state['delta_hidden_bias']
+        self.w = state["w"]
+        self.visible_bias = state["visible_bias"]
+        self.hidden_bias = state["hidden_bias"]
+        self.delta_w = state["delta_w"]
+        self.delta_visible_bias = state["delta_visible_bias"]
+        self.delta_hidden_bias = state["delta_hidden_bias"]
