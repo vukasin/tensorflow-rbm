@@ -18,11 +18,12 @@ class BBRBM(RBM):
         super().__init__(*args, **kwargs)
 
     def step(self, x: tf.Tensor, k:int = 1) -> tf.Tensor:
-        visible_recon_p = x
-        hidden_recon_p = tf.nn.sigmoid(tf.matmul(visible_recon_p, self.w) + self.hidden_bias)
+        
+        hidden_recon_p = tf.nn.sigmoid(tf.matmul(x, self.w) + self.hidden_bias)
+        hidden_p = hidden_recon_p
 
         positive_grad = tf.matmul(tf.transpose(visible_recon_p), hidden_recon_p)
-        
+        visible_recon_p = x
         for _ in range(k):
             visible_recon_p = tf.nn.sigmoid(tf.matmul(sample_bernoulli(hidden_recon_p), tf.transpose(self.w)) + self.visible_bias)
             hidden_recon_p = tf.nn.sigmoid(tf.matmul(visible_recon_p, self.w) + self.hidden_bias)
